@@ -5,6 +5,8 @@ import vuetify from './plugins/vuetify'
 
 Vue.config.productionTip = false
 
+if (parent['setMPTheme']) parent.setMPTheme('Mass SMS Sender - NetSuite Australia (Mail Plus Pty Ltd)')
+
 new Vue({
   store,
   vuetify,
