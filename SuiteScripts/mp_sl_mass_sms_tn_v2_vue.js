@@ -42,7 +42,7 @@ define(['N/ui/serverWidget', 'N/render', 'N/search', 'N/file', 'N/log', 'N/recor
     return {onRequest};
 });
 
-// Render the page within a form element of NetSuite. This can cause conflict with NetSuite's stylesheets.
+// We use the form to load the Client Script.
 function _getInlineForm(response) {
     let {serverWidget} = NS_MODULES;
     
@@ -145,13 +145,43 @@ function _writeResponseJson(response, body) {
 }
 
 const getOperations = {
-    'getIframeContents' : function (response) {
+    'getIframeContents' : function (response) { // DO NOT REMOVE. This GET function is essential to load the Vue app
         let {file} = NS_MODULES;
 
         const htmlFileData = _getHtmlTemplate(htmlTemplateFile);
         const htmlFile = file.load({ id: htmlFileData[htmlTemplateFile].id });
 
         _writeResponseJson(response, htmlFile.getContents());
+    },
+    'getAllFranchisees' : function (response) {
+        let {search} = NS_MODULES;
+        let data = [];
+
+        search.create({
+            type: "partner",
+            filters:
+                [
+                    ["isinactive", "is", false],
+                    "AND",
+                    ["entityid", "doesnotstartwith", "old"]
+                ],
+            columns:
+                [
+                    search.createColumn({name: "internalid", label: "Internal ID"}),
+                    search.createColumn({name: "entityid", sort: search.Sort.ASC, label: "Name"}),
+                    search.createColumn({name: "companyname", label: "Company Name"}),
+                    search.createColumn({name: "department", label: "Department"}),
+                    search.createColumn({name: "location", label: "Location"}),
+                    search.createColumn({name: "mobilephone", label: "Mobile Phone"}),
+                    search.createColumn({name: "custentity2", label: "Franchisee Mobile No"})
+                ]
+        }).run().each(result => {
+            data.push({text: result.getValue('companyname'), value: result.getValue('internalid')});
+
+            return true;
+        })
+
+        _writeResponseJson(response, data);
     }
 }
 
