@@ -182,6 +182,50 @@ const getOperations = {
         })
 
         _writeResponseJson(response, data);
+    },
+    'getAllOperators' : function (response) {
+        let {search} = NS_MODULES;
+        let data = [];
+        search.create({
+            type: "customrecord_operator",
+            filters:
+                [
+                    ["isinactive", "is", false],
+                    "AND",
+                    ["custrecord_operator_status", "noneof", ["3","5"]], // No Longer Employed or Duplicated
+                ],
+            columns:
+                [
+                    search.createColumn({
+                        name: "internalid",
+                        sort: search.Sort.ASC,
+                        label: "Operator Internal ID"
+                    }),
+                    search.createColumn({name: "custrecord_operator_givennames", label: "Given Names"}),
+                    search.createColumn({name: "custrecord_operator_email", label: "Contact Email"}),
+                    search.createColumn({name: "custrecord_operator_phone", label: "Contact Phone"}),
+                    search.createColumn({
+                        name: "internalid",
+                        join: "CUSTRECORD_OPERATOR_FRANCHISEE",
+                        label: "Franchisee Internal ID"
+                    }),
+                    search.createColumn({
+                        name: "companyname",
+                        join: "CUSTRECORD_OPERATOR_FRANCHISEE",
+                        label: "Company Name"
+                    }),
+                    search.createColumn({name: "custrecord_dds_operator", label: "DDS Operator"})
+                ]
+        }).run().each(result => {
+            data.push({
+                value: result.getValue('internalid'),
+                text: `${result.getValue('custrecord_operator_givennames')} (${result.getValue({name: 'companyname', join: 'CUSTRECORD_OPERATOR_FRANCHISEE'})})`,
+            });
+
+            return true;
+        })
+
+        _writeResponseJson(response, data);
     }
 }
 
