@@ -183,17 +183,23 @@ const getOperations = {
 
         _writeResponseJson(response, data);
     },
-    'getAllOperators' : function (response) {
+    'getAllOperators' : function (response, {franchiseeIds = []} = {}) {
         let {search} = NS_MODULES;
         let data = [];
+        let filters = [
+            ["isinactive", "is", false],
+            "AND",
+            ["custrecord_operator_status", "noneof", ["3","5"]], // No Longer Employed or Duplicated
+        ];
+
+        if (franchiseeIds && franchiseeIds?.length) {
+            filters.push('AND');
+            filters.push(['custrecord_operator_franchisee', 'anyof', franchiseeIds])
+        }
+
         search.create({
             type: "customrecord_operator",
-            filters:
-                [
-                    ["isinactive", "is", false],
-                    "AND",
-                    ["custrecord_operator_status", "noneof", ["3","5"]], // No Longer Employed or Duplicated
-                ],
+            filters,
             columns:
                 [
                     search.createColumn({
@@ -220,10 +226,31 @@ const getOperations = {
             data.push({
                 value: result.getValue('internalid'),
                 text: `${result.getValue('custrecord_operator_givennames')} (${result.getValue({name: 'companyname', join: 'CUSTRECORD_OPERATOR_FRANCHISEE'})})`,
+                franchiseeId: result.getValue({name: 'internalid', join: 'CUSTRECORD_OPERATOR_FRANCHISEE'})
             });
 
             return true;
         })
+
+        _writeResponseJson(response, data);
+    },
+    'getSavedSearchOfFranchisees' : function (response) {
+        let {search} = NS_MODULES;
+
+        let data = [];
+        let columnNames = ['id', 'title', 'recordtype', 'frombundle', 'owner', 'access', 'lastrunby', 'lastrunon'];
+
+        search.create({
+            type: search.Type['SAVED_SEARCH'],
+            filters: [
+                {name: 'recordtype', operator: 'anyof', values: ['Partner']},
+            ],
+            columns: columnNames.map(item => ({name: item}))
+        }).run().each(result => {
+            data.push({text: result.getValue('title'), value: result.getValue('id')});
+
+            return true;
+        });
 
         _writeResponseJson(response, data);
     }
