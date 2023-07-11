@@ -19,9 +19,8 @@ const state = {
         selectedOperatorIds: [],
 
         recipients: [],
-
-        operatorSelectorBusy: false,
-        franchiseeSelectorBusy: false,
+        message: '',
+        busy: false,
     },
 
     recipientDialog: {
@@ -41,9 +40,19 @@ const state = {
 
         operatorFilterByFranchisees: [],
     },
+
+    globalModal: {
+        open: false,
+        title: 'Default title',
+        body: 'This is a global modal that will deliver notification on global level.',
+        busy: false,
+        persistent: true,
+        isError: false
+    },
 };
 
 const getters = {
+    globalModal : state => state.globalModal,
     franchisees : state => state.franchisees,
     franchiseeSavedSearches : state => state.franchiseeSavedSearches,
     operators : state => state.operators,
@@ -107,6 +116,34 @@ const mutations = {
             state.recipientDialog.tabLock = null;
             state.recipientDialog.selectedIndex = null;
         }
+    },
+
+    setGlobalModal: (state, open = true) => {
+        state.globalModal.open = open;
+    },
+    displayErrorGlobalModal: (state, {title, message}) => {
+        state.globalModal.title = title;
+        state.globalModal.body = message;
+        state.globalModal.busy = false;
+        state.globalModal.open = true;
+        state.globalModal.persistent = true;
+        state.globalModal.isError = true;
+    },
+    displayBusyGlobalModal: (state, {title, message, open}) => {
+        state.globalModal.title = title;
+        state.globalModal.body = message;
+        state.globalModal.busy = open;
+        state.globalModal.open = open;
+        state.globalModal.persistent = false;
+        state.globalModal.isError = false;
+    },
+    displayInfoGlobalModal: (state, {title, message}) => {
+        state.globalModal.title = title;
+        state.globalModal.body = message;
+        state.globalModal.busy = false;
+        state.globalModal.open = true;
+        state.globalModal.persistent = false;
+        state.globalModal.isError = false;
     }
 };
 
@@ -133,8 +170,10 @@ const actions = {
         context.state.franchiseeSavedSearches.data = await http.get('getSavedSearchOfFranchisees');
         context.state.franchiseeSavedSearches.loading = false;
     },
-    handleException : (context, payload) => {
-        console.error(payload);
+    handleException: (context, {title, message}) => {
+        context.commit('displayErrorGlobalModal', {
+            title, message
+        })
     },
 };
 
@@ -142,7 +181,6 @@ let _getOperatorBasedOnFranchisees = debounce(async context => {
     context.state.operators = await http.get('getAllOperators', {
         franchiseeIds: context.state.recipientDialog.operatorFilterByFranchisees
     });
-    context.state.form.operatorSelectorBusy = false;
 }, 2000)
 
 function _addEntryToRecipients(state, type, textFunc = null) {
