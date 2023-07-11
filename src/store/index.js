@@ -112,9 +112,6 @@ const mutations = {
 
 const actions = {
     init : async context => {
-        context.state.recipientDialog.phoneNumbers =
-            ['123342534', '123124143', '123243343', '54634234', '72341513', '3242356234', '231116644', '3474354353', '87345345334', '02343343'];
-        context.commit('addPhoneNumbersToRecipients');
         if (!_checkNetSuiteEnv()) return;
 
         context.dispatch('getFranchisees').then();
