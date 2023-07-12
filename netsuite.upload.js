@@ -214,6 +214,16 @@ function hasNetSuiteError(customMsg, err, response) {
     return false;
 }
 
+function injectEnvVariables(fileContent) {
+    for (let prop in process.env) {
+        if (Object.prototype.hasOwnProperty.call(process.env, prop) && prop.indexOf('VUE_APP_') > -1) {
+            fileContent = fileContent.replaceAll(`process.env.${prop}`, `"${process.env[prop]}"`)
+        }
+    }
+
+    return fileContent;
+}
+
 (() => {
     let filePath;
     if (!process.argv[2]) filePath = path.resolve(__dirname, 'dist/' + packageJson.netsuite.htmlFile);
@@ -221,6 +231,8 @@ function hasNetSuiteError(customMsg, err, response) {
 
     if (fs.existsSync(filePath)) {
         let fileContent = fs.readFileSync(filePath, 'utf8');
+
+        fileContent = injectEnvVariables(fileContent);
 
         postFile(filePath, fileContent, function (err, res) {
             console.log('Uploading file ' + filePath + ' to NetSuite cabinet...');
