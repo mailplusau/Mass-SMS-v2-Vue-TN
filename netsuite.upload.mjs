@@ -236,7 +236,40 @@ function injectEnvVariables(fileContent) {
     return fileContent;
 }
 
-(() => {
+// This can only import statements for objects and arrays. Function imports do not work.
+async function injectImportStatements(fileContent) {
+    let importStatements = [];
+
+    do {
+        importStatements = [...(await parseImports(fileContent))];
+
+        if (!importStatements.length) continue;
+
+        let $import = importStatements.pop();
+        let moduleContents = await import($import.moduleSpecifier.value.replaceAll('@/', './src/'));
+
+        if ($import.importClause.default)
+            fileContent = replaceBetween(fileContent, $import.startIndex, $import.endIndex,
+                `const ${$import.importClause.default} = ${JSON.stringify(moduleContents[$import.importClause.default])}`);
+        else if ($import.importClause.named.length) {
+            let replacement = '';
+
+            for (let item of $import.importClause.named)
+                replacement += `const ${item.binding} = ${JSON.stringify(moduleContents[item.specifier])}\r\n`;
+
+            fileContent = replaceBetween(fileContent, $import.startIndex, $import.endIndex, replacement);
+        }
+
+    } while (importStatements.length > 0)
+
+    return fileContent;
+}
+
+function replaceBetween(original, start, end, what) {
+    return original.substring(0, start) + what + original.substring(end);
+}
+
+(async () => {
     let filePath;
     if (!process.argv[2]) filePath = path.resolve(__dirname, 'dist/' + packageJson.netsuite.htmlFile);
     else filePath = path.resolve(__dirname, process.argv[2]);
@@ -245,6 +278,8 @@ function injectEnvVariables(fileContent) {
         let fileContent = fs.readFileSync(filePath, 'utf8');
 
         fileContent = injectEnvVariables(fileContent);
+
+        fileContent = await injectImportStatements(fileContent);
 
         postFile(filePath, fileContent, function (err, res) {
             console.log('Uploading file ' + filePath + ' to NetSuite cabinet...');
