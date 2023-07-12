@@ -6,7 +6,7 @@
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
-    "postbuild": "node netsuite.upload.js"
+    "postbuild": "node netsuite.upload.mjs"
   },
   "netsuite": {
     "htmlFile": "mp_cl_mass_sms_tn_v2_vue.html"

@@ -1,15 +1,27 @@
-const superagent = require('superagent');
-let fs = require('fs');
-const crypto = require('crypto');
-const path = require('path');
-const OAuth = require('oauth-1.0a');
-const compareVersions = require('compare-versions');
-const url = require('url');
-const packageJson = require('./package.json');
+import parseImports from 'parse-imports'
+import superagent from 'superagent';
+import fs from 'fs';
+import crypto from "crypto";
+import path from 'path';
+import OAuth from "oauth-1.0a";
+import compareVersions from "compare-versions";
+import url from "url";
+import {} from 'dotenv/config'
+
+// A roundabout way to use require() so that we can read package.json file
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
+const packageJson = require("./package.json");
+
+// This is so that we can have __dirname like CommonJS
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 const BAD_VERSION_ERROR = {
     shortMsg: "You might need to update the vscodeExtensionRestlet.js RESTlet in NetSuite to the latest version."
 };
-require('dotenv').config();
 
 let config = {
     authentication: process.env.VUE_APP_NS_AUTHENTICATION,
