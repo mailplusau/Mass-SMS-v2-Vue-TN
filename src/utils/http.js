@@ -8,12 +8,16 @@ function _getURL() {
         get: (searchParams, prop) => searchParams.get(prop),
     });
 
-    return {baseUrl, essentialParams: {script: params['script'], deploy: params['deploy']}}
+    let essentialParams = {script: params['script'], deploy: params['deploy']};
+    let postEndpoint = baseUrl + '?' + new URLSearchParams(essentialParams).toString();
+
+    return {baseUrl, essentialParams, postEndpoint}
 }
 
 export default {
     async get(operation, requestParams) {
         let {baseUrl, essentialParams} = _getURL();
+
         return new Promise((resolve, reject) => {
             superagent.get(baseUrl)
                 .set("Content-Type", "application/json")
@@ -22,8 +26,10 @@ export default {
         });
     },
     async post(operation, requestParams) {
+        let {postEndpoint} = _getURL();
+
         return new Promise((resolve, reject) => {
-            superagent.post(window.location.href)
+            superagent.post(postEndpoint)
                 .set("Content-Type", "application/json")
                 .set("Accept", "json")
                 .send({operation, requestParams})
@@ -33,7 +39,7 @@ export default {
 }
 
 function _handle(err, res, reject, resolve) {
-    let errorMessage = err || (res.body.error || null);
+    let errorMessage = err || (res.body?.error || null);
 
     if (errorMessage) {
         store.dispatch('handleException', {title: 'An error occurred', message: errorMessage}, {root: true}).then();
