@@ -1,12 +1,17 @@
 <template>
     <v-container fluid>
-        <v-row class="mx-1">
-            <v-col cols="12" class="mb-4">
+        <v-row class="mx-1" justify="space-between" align="center">
+            <v-col cols="auto">
                 <h1 class="primary--text">
                     Mass SMS Sender
                 </h1>
             </v-col>
 
+            <v-col cols="auto">
+                <a @click="$store.dispatch('addShortcut')" class="subtitle-1">Add To Shortcuts <v-icon size="20" color="primary">mdi-open-in-new</v-icon></a>
+            </v-col>
+        </v-row>
+        <v-row class="mx-1">
             <v-col cols="12">
                 <RecipientDisplay />
             </v-col>

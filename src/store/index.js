@@ -2,7 +2,6 @@ import Vue from 'vue';
 import Vuex from 'vuex';
 import modules from './modules';
 import http from "@/utils/http";
-import {debounce} from "@/utils/utils";
 import {VARS} from "@/utils/utils";
 
 const baseURL = 'https://' + process.env.VUE_APP_NS_REALM + '.app.netsuite.com';
@@ -148,6 +147,9 @@ const mutations = {
 };
 
 const actions = {
+    addShortcut : () => {
+        parent?.window?.addShortcut()
+    },
     init : async context => {
         if (!_checkNetSuiteEnv()) return;
 
