@@ -116,7 +116,7 @@ export default {
     name: "AddRecipientOperatorTab",
     data: () => ({
         ...VARS,
-        filterDialog: false,
+        filterDialog: true,
     }),
     methods: {
         save() {

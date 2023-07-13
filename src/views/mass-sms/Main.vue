@@ -13,36 +13,42 @@
 
             <v-col cols="12">
                 <v-textarea
+                    v-model="form.message"
                     outlined counter :rules="rules"
                     label="Message To Send"
                     placeholder="Put the content of your SMS message here."
                 ></v-textarea>
             </v-col>
 
-            <v-col cols="12">{{form}}</v-col>
-            <v-col cols="12">{{$store.getters['recipientDialog']}}</v-col>
+            <v-col cols="12">
+                <SendMassSMSDialog />
+            </v-col>
         </v-row>
 
-        <RecipientDeletionModal />
+        <RecipientDeletionDialog />
     </v-container>
 </template>
 
 <script>
 import RecipientDisplay from "@/views/mass-sms/RecipientDisplay";
-import RecipientDeletionModal from "@/views/mass-sms/RecipientDeletionModal";
+import RecipientDeletionDialog from "@/views/mass-sms/RecipientDeletionDialog";
+import SendMassSMSDialog from "@/views/mass-sms/SendMassSMSDialog";
+
+function messageRule(msg) {
+    if (!msg) return true;
+
+    if (msg.length > 160) return 'SMS should contain no more than 160 characters';
+
+    if (msg.length < 5) return 'SMS should contain no less than 5 characters';
+
+    return true;
+}
 
 export default {
     name: "Main",
-    components: {RecipientDeletionModal, RecipientDisplay},
+    components: {SendMassSMSDialog, RecipientDeletionDialog, RecipientDisplay},
     data: () => ({
-        rules: [v => !v || v?.length <= 160 || 'Max 160 characters'],
-        items: [
-            { text: 'Florida', value: 'FL' },
-            { text: 'Georgia', value: 'GA' },
-            { text: 'Nebraska', value: 'NE' },
-            { text: 'California', value: 'CA' },
-            { text: 'New York', value: 'NY' },
-        ],
+        rules: [v => messageRule(v)],
     }),
     computed: {
         form() {

@@ -1,7 +1,7 @@
 <template>
     <v-dialog
         v-model="dialog"
-        max-width="550"
+        max-width="500"
         :persistent="globalModal.persistent"
     >
         <v-card class="background">

@@ -43,7 +43,7 @@
 import {VARS} from "@/utils/utils";
 
 export default {
-    name: "RecipientDeletionModal",
+    name: "RecipientDeletionDialog",
     data: () => ({
         ...VARS,
     }),
