@@ -277,9 +277,11 @@ function replaceBetween(original, start, end, what) {
     if (fs.existsSync(filePath)) {
         let fileContent = fs.readFileSync(filePath, 'utf8');
 
-        fileContent = injectEnvVariables(fileContent);
+        if (process.argv.includes('resolve:env'))
+            fileContent = injectEnvVariables(fileContent);
 
-        fileContent = await injectImportStatements(fileContent);
+        if (process.argv.includes('resolve:imports'))
+            fileContent = await injectImportStatements(fileContent);
 
         postFile(filePath, fileContent, function (err, res) {
             console.log('Uploading file ' + filePath + ' to NetSuite cabinet...');
