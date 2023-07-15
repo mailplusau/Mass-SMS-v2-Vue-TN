@@ -6,10 +6,15 @@
  * @created 10/07/2023
  */
 
+import {VARS} from '@/utils/utils.mjs';
+
 // This should be the same file as the one built by webpack. Make sure this matches the filename in package.json
 let htmlTemplateFile = 'mp_cl_mass_sms_tn_v2_vue.html';
 const clientScriptFilename = 'mp_cl_mass_sms_tn_v2_vue.js';
-const defaultTitle = 'Loading page. Please wait...';
+const defaultTitle = 'Mass SMS Sender';
+const senderNumber = process.env.VUE_APP_NS_SMS_SENDER_NUMBER;
+const processorScriptId = process.env.VUE_APP_NS_PROCESSOR_SCRIPT_ID; // The record id of the script mp_mr_mass_sms_processor_tn_v2.js in NetSuite
+const paramFileName = 'mp_pf_mass_sms_tn.json'; // parameter file
 
 let NS_MODULES = {};
 
@@ -257,8 +262,77 @@ const getOperations = {
 }
 
 const postOperations = {
+    'sendMassSMS' : function (response, {recipients, message, customSenderNumber} = {}) {
+        let {file, task} = NS_MODULES;
+        let fileContent = {status: VARS.MR_STATUS.INDEXING, timestamp: Date.now(), recipients: [], mobileNumbers: [],
+            senderNumber: customSenderNumber || senderNumber, message};
 
+        // We check if the process is already running
+        if (_isSendingInProgress()) {
+            _writeResponseJson(response, {error: 'Another process is already running. Please try again later.'});
+            return;
+        }
+
+        // Check if recipients is present and has data
+        if (!recipients || !recipients?.length) {
+            _writeResponseJson(response, {error: 'No recipient specified.'});
+            return;
+        }
+
+        // Check if message is present
+        if (!message || message.length < 5) {
+            _writeResponseJson(response, {error: 'Message is empty or too short'});
+            return;
+        }
+
+        fileContent.recipients = recipients.map(recipient => ({type: recipient.type, data: recipient.data}));
+
+        // noinspection JSVoidFunctionReturnValueUsed
+        let fileId = file.create({
+            name: paramFileName,
+            fileType: file.Type['JSON'],
+            contents: JSON.stringify(fileContent),
+            folder: -15,
+        }).save();
+
+        let params = {};
+        let execTimestampParamName = `custscript_${processorScriptId}_exec_timestamp`;
+        let paramFileIdParamName = `custscript_${processorScriptId}_param_file_id`;
+        params[execTimestampParamName] = fileContent.timestamp;
+        params[paramFileIdParamName] = fileId;
+
+        let scriptTask = task.create({
+            taskType: task.TaskType['MAP_REDUCE'],
+            scriptId: 'customscript_mr_mass_sms_processor_tn_v2',
+            deploymentId: 'customdeploy_mr_mass_sms_processor_tn_v2',
+            params
+        });
+        scriptTask.submit();
+
+        _writeResponseJson(response, `The specified recipients will be processed and an SMS will be sent to them shortly.`);
+    }
 };
+
+function _isSendingInProgress() {
+    let {search, file} = NS_MODULES;
+    let fileId = null;
+
+    search.create({
+        type: 'file',
+        filters: [['name', 'is', paramFileName], 'AND', ['folder', 'is', -15]],
+        columns: ['name', 'url']
+    }).run().each(resultSet => {fileId = resultSet.id;});
+
+    if (!fileId) return false;
+
+    let fileRecord = file.load({id: fileId});
+
+    try {
+        let fileContent = JSON.parse(fileRecord.getContents());
+
+        return [VARS.MR_STATUS.STARTING, VARS.MR_STATUS.INDEXING, VARS.MR_STATUS.SENDING].includes(fileContent.status);
+    } catch (e) { return false; }
+}
 
 function _parseIsoDatetime(dateString) {
     let dt = dateString.split(/[: T-]/).map(parseFloat);
