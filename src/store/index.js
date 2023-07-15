@@ -136,12 +136,12 @@ const mutations = {
         state.globalModal.persistent = false;
         state.globalModal.isError = false;
     },
-    displayInfoGlobalModal: (state, {title, message}) => {
+    displayInfoGlobalModal: (state, {title, message, persistent = false}) => {
         state.globalModal.title = title;
         state.globalModal.body = message;
         state.globalModal.busy = false;
         state.globalModal.open = true;
-        state.globalModal.persistent = false;
+        state.globalModal.persistent = persistent;
         state.globalModal.isError = false;
     }
 };
@@ -186,7 +186,7 @@ const actions = {
             message: context.state.form.message,
         });
 
-        context.commit('displayInfoGlobalModal', {title: 'Complete', message: response});
+        context.commit('displayInfoGlobalModal', {title: 'Complete', message: response, persistent: true});
     }
 };
 

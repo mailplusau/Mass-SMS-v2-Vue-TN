@@ -4,7 +4,7 @@
         max-width="400"
     >
         <template v-slot:activator="{ on, attrs }">
-            <v-btn :disabled="!form.recipients.length || !form.message" color="success" block large
+            <v-btn :disabled="buttonDisabled" color="success" block large
                    v-bind="attrs" v-on="on">
                 Send sms to all recipients
             </v-btn>
@@ -49,6 +49,10 @@ export default {
     computed: {
         form() {
             return this.$store.getters['form'];
+        },
+        buttonDisabled() {
+            return !this.form.recipients.length || !this.form.message ||
+                this.form.message.length > 1600 || this.form.message.length < 5;
         }
     }
 }

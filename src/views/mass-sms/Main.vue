@@ -42,7 +42,7 @@ import SendMassSMSDialog from "@/views/mass-sms/SendMassSMSDialog";
 function messageRule(msg) {
     if (!msg) return true;
 
-    if (msg.length > 160) return 'SMS should contain no more than 160 characters';
+    if (msg.length > 1600) return 'SMS should contain no more than 1600 characters';
 
     if (msg.length < 5) return 'SMS should contain no less than 5 characters';
 

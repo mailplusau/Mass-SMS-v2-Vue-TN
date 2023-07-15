@@ -14,7 +14,7 @@ const twilioEndpoint = process.env.VUE_APP_NS_TWILIO_SMS_ENDPOINT;
 let NS_MODULES = {};
 
 const thisScriptId = process.env.VUE_APP_NS_PROCESSOR_SCRIPT_ID; // The id of the record of this script in NetSuite
-const moduleNames = ['render', 'file', 'runtime', 'search', 'record', 'url', 'format', 'email', 'task', 'log'];
+const moduleNames = ['render', 'file', 'runtime', 'search', 'record', 'url', 'format', 'email', 'task', 'log', 'https'];
 
 const paramNames = {
     paramFileId: `custscript_${thisScriptId}_param_file_id`,
@@ -51,6 +51,8 @@ define(moduleNames.map(item => 'N/' + item), (...args) => {
 
     function summarize(context) {
         let {file, log, task, runtime} = NS_MODULES;
+
+        _handleErrorsInSummary(context);
 
         let fileId = runtime.getCurrentScript().getParameter(paramNames.paramFileId);
         let fileRecord = file.load({id: fileId});
@@ -99,7 +101,7 @@ define(moduleNames.map(item => 'N/' + item), (...args) => {
             if (fileContent.status === VARS.MR_STATUS.SENDING)
                 log.debug({
                     title: "summarize()",
-                    details: `Indexing stage finishing. Moving on to Sending stage...`,
+                    details: `Indexing stage finished. Moving on to Sending stage...`,
                 });
         } else if (fileContent?.status === VARS.MR_STATUS.SENDING) {
             fileContent.status = VARS.MR_STATUS.COMPLETED;
@@ -111,9 +113,15 @@ define(moduleNames.map(item => 'N/' + item), (...args) => {
                 folder: fileRecord.folder,
             }).save();
 
+            let count = 0;
+            context.output.iterator().each(() => {
+                count++;
+                return true;
+            });
+
             log.debug({
                 title: "summarize()",
-                details: `Finished sending message to ${fileContent.mobileNumbers.length} phone numbers.`,
+                details: `Finished. ${count} SMS messages were sent out.`,
             });
         }
 
@@ -208,12 +216,10 @@ function _sendMessage(context, fileContent) {
         for (let value of context.values) {
             if (!_isMobileNumberValid(value)) continue;
 
-            log.debug({title: "reduce/sendMessage", details: `Sending SMS to ${value}`});
-
             let {code} = https.post({
                 url: twilioEndpoint,
                 body: {
-                    "Body": 'This is a test message',
+                    "Body": fileContent.message,
                     "To": value,
                     "From": fileContent.senderNumber
                 },
@@ -227,7 +233,7 @@ function _sendMessage(context, fileContent) {
 
             index++;
         }
-    }else log.debug({title: "reduce/indexPhoneNumbers", details: `key: ${context.key} | values: ${JSON.stringify(context.values)}`});
+    } else log.debug({title: "reduce/indexPhoneNumbers", details: `key: ${context.key} | values: ${JSON.stringify(context.values)}`});
 }
 
 function _getFileContent() {
@@ -250,40 +256,23 @@ function _getFileContent() {
 }
 
 function _handleErrorsInSummary(context) {
-    let {log, file, runtime} = NS_MODULES;
+    let {log} = NS_MODULES;
 
     let errorCount = 0;
 
     if (context.inputSummary.error) {
-        log.error('Input Error', context.inputSummary.error);
+        log.error('Error in Input', context.inputSummary.error);
         errorCount++;
     }
 
     context.reduceSummary.errors.iterator().each(function(key, error, executionNo) {
         log.error({
-            title: 'Reduce error for key: ' + key + ', execution no. ' + executionNo,
+            title: 'Error in Reduce for key: ' + key + ', execution no. ' + executionNo,
             details: error
         });
         errorCount ++;
         return true;
     });
 
-    if (errorCount) {
-        let fileId = runtime.getCurrentScript().getParameter(paramNames.paramFileId);
-        let fileRecord = file.load({id: fileId});
-        let fileContent = JSON.parse(fileRecord.getContents());
-
-        fileContent.status = VARS.MR_STATUS.ERROR;
-
-        file.create({
-            name: fileRecord.name,
-            fileType: fileRecord.fileType,
-            contents: JSON.stringify(fileContent),
-            folder: fileRecord.folder,
-        }).save();
-
-        return true;
-    }
-
-    return false;
+    return errorCount;
 }
