@@ -15,7 +15,8 @@ const MR_STATUS = {
     STARTING: 'starting',
     INDEXING: 'indexing',
     SENDING: 'sending',
-    COMPLETED: 'completed'
+    COMPLETED: 'completed',
+    ERROR: 'error',
 }
 
 export const VARS = {
