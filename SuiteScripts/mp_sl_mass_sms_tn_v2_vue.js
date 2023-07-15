@@ -213,6 +213,7 @@ const getOperations = {
                         label: "Operator Internal ID"
                     }),
                     search.createColumn({name: "custrecord_operator_givennames", label: "Given Names"}),
+                    search.createColumn({name: "custrecord_operator_surname", label: "Surname"}),
                     search.createColumn({name: "custrecord_operator_email", label: "Contact Email"}),
                     search.createColumn({name: "custrecord_operator_phone", label: "Contact Phone"}),
                     search.createColumn({
@@ -230,7 +231,7 @@ const getOperations = {
         }).run().each(result => {
             data.push({
                 value: result.getValue('internalid'),
-                text: `${result.getValue('custrecord_operator_givennames')} (${result.getValue({name: 'companyname', join: 'CUSTRECORD_OPERATOR_FRANCHISEE'})})`,
+                text: `${result.getValue('custrecord_operator_givennames')} ${result.getValue('custrecord_operator_surname')} (${result.getValue({name: 'companyname', join: 'CUSTRECORD_OPERATOR_FRANCHISEE'})})`,
                 franchiseeId: result.getValue({name: 'internalid', join: 'CUSTRECORD_OPERATOR_FRANCHISEE'})
             });
 
