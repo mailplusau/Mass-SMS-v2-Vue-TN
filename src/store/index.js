@@ -177,13 +177,18 @@ const actions = {
             title, message
         })
     },
-};
+    sendMassSMS : async context => {
+        context.commit('displayBusyGlobalModal', {title: 'Sending message', message: 'Please wait while the message is being sent...', open: true});
 
-let _getOperatorBasedOnFranchisees = debounce(async context => {
-    context.state.operators = await http.get('getAllOperators', {
-        franchiseeIds: context.state.recipientDialog.operatorFilterByFranchisees
-    });
-}, 2000)
+        let response = await http.post('sendMassSMS', {
+            customSenderNumber: '',
+            recipients: context.state.form.recipients,
+            message: context.state.form.message,
+        });
+
+        context.commit('displayInfoGlobalModal', {title: 'Complete', message: response});
+    }
+};
 
 function _addEntryToRecipients(state, type, textFunc = null) {
     if (!state.recipientDialog[type].length) return;
