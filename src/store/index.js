@@ -133,7 +133,7 @@ const mutations = {
         state.globalModal.body = message;
         state.globalModal.busy = open;
         state.globalModal.open = open;
-        state.globalModal.persistent = false;
+        state.globalModal.persistent = true;
         state.globalModal.isError = false;
     },
     displayInfoGlobalModal: (state, {title, message, persistent = false}) => {
