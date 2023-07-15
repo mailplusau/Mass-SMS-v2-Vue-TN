@@ -17,6 +17,7 @@ define(moduleNames.map(item => 'N/' + item), (...args) => {
 
         function pageInit() {
             console.log('Client script init.');
+            document.querySelector('h1.uir-record-type').innerHTML = 'Loading page. Please wait...';
 
             let baseUrl = getCurrentNetSuiteUrl().split('?')[0];
             const params = new Proxy(new URLSearchParams(window.location.search), {
