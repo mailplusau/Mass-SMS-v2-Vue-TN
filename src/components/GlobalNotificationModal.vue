@@ -13,9 +13,12 @@
 
             <v-card-text v-show="globalModal.busy" class="text-center">
                 <v-progress-circular
-                    indeterminate
+                    :rotate="globalModal.progress >= 0 && globalModal.progress <= 100 ? -90 : 0"
+                    :indeterminate="globalModal.progress < 0 || globalModal.progress > 100 || globalModal.progress === null"
+                    :value="globalModal.progress"
                     color="primary"
-                ></v-progress-circular>
+                    size="45"
+                >{{ (globalModal.progress >= 0 && 100 >= globalModal.progress) ? globalModal.progress + '%' : '' }}</v-progress-circular>
             </v-card-text>
 
             <v-card-text :class="globalModal.busy ? 'text-center' : ''" v-html="globalModal.body"></v-card-text>

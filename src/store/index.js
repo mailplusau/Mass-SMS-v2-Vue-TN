@@ -8,6 +8,9 @@ const baseURL = 'https://' + process.env.VUE_APP_NS_REALM + '.app.netsuite.com';
 
 Vue.use(Vuex);
 
+let progressTimer;
+let checkInternal = 3000; // in milliseconds
+
 const state = {
     franchisees: { loading: false, data: [], },
     franchiseeSavedSearches: { loading: false, data: [], },
@@ -45,9 +48,12 @@ const state = {
         title: 'Default title',
         body: 'This is a global modal that will deliver notification on global level.',
         busy: false,
+        progress: -1,
         persistent: true,
         isError: false
     },
+
+    progressStatus: {status: null, processedRecipients: 0, totalRecipients: 0, processedNumbers: 0, totalNumbers: 0, averageProgressRate: 0}
 };
 
 const getters = {
@@ -125,14 +131,16 @@ const mutations = {
         state.globalModal.body = message;
         state.globalModal.busy = false;
         state.globalModal.open = true;
+        state.globalModal.progress = -1;
         state.globalModal.persistent = true;
         state.globalModal.isError = true;
     },
-    displayBusyGlobalModal: (state, {title, message, open}) => {
+    displayBusyGlobalModal: (state, {title, message, open = true, progress = -1}) => {
         state.globalModal.title = title;
         state.globalModal.body = message;
         state.globalModal.busy = open;
         state.globalModal.open = open;
+        state.globalModal.progress = progress;
         state.globalModal.persistent = true;
         state.globalModal.isError = false;
     },
@@ -141,6 +149,7 @@ const mutations = {
         state.globalModal.body = message;
         state.globalModal.busy = false;
         state.globalModal.open = true;
+        state.globalModal.progress = -1;
         state.globalModal.persistent = persistent;
         state.globalModal.isError = false;
     }
@@ -152,6 +161,9 @@ const actions = {
     },
     init : async context => {
         if (!_checkNetSuiteEnv()) return;
+
+        await context.dispatch('checkProgress');
+        progressTimer = setInterval(() => {context.dispatch('checkProgress')}, checkInternal);
 
         context.dispatch('getFranchisees').then();
         context.dispatch('getSavedSearches').then();
@@ -180,13 +192,41 @@ const actions = {
     sendMassSMS : async context => {
         context.commit('displayBusyGlobalModal', {title: 'Sending message', message: 'Please wait while the message is being sent...', open: true});
 
-        let response = await http.post('sendMassSMS', {
+        await http.post('sendMassSMS', {
             customSenderNumber: '',
             recipients: context.state.form.recipients,
             message: context.state.form.message,
         });
+    },
+    checkProgress : async context => {
+        let {status, processedRecipients, totalRecipients, processedNumbers, totalNumbers} = await http.get('getProgressStatus');
+        let currentProgress = context.state.progressStatus;
+        let progressText ='(' + processedNumbers + '/' + totalNumbers + ' messages sent)';
 
-        context.commit('displayInfoGlobalModal', {title: 'Complete', message: response, persistent: true});
+        console.log('recipient progress', Math.ceil(parseInt(processedRecipients) / parseInt(totalRecipients)) * 100)
+        console.log('number progress', Math.ceil(parseInt(processedNumbers) / parseInt(totalNumbers)) * 100)
+
+        if (status === VARS.MR_STATUS.INDEXING)
+            context.commit('displayBusyGlobalModal', {
+                title: 'Email sending in progress',
+                message: 'Recipients are being processed...',
+                progress: Math.ceil(parseInt(processedRecipients) / parseInt(totalRecipients) * 100)
+            });
+        else if (status === VARS.MR_STATUS.SENDING)
+            context.commit('displayBusyGlobalModal', {
+                title: 'Email sending in progress',
+                message: 'Messages are being sent out... ' + progressText,
+                progress: Math.ceil(parseInt(processedNumbers) / parseInt(totalNumbers) * 100)
+            });
+        else if (currentProgress.status !== null && currentProgress.status !== status && status === VARS.MR_STATUS.COMPLETED)
+            context.commit('displayInfoGlobalModal', {title: 'Complete', message: totalNumbers + ' SMS messages were sent out.'});
+
+        context.state.progressStatus.status = status;
+        context.state.progressStatus.processedNumbers = parseInt(processedNumbers);
+        context.state.progressStatus.totalNumbers = parseInt(totalNumbers);
+    },
+    stopCheckingProgress : () => {
+        clearInterval(progressTimer);
     }
 };
 

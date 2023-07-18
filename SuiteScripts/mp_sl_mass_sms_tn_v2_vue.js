@@ -259,6 +259,35 @@ const getOperations = {
         });
 
         _writeResponseJson(response, data);
+    },
+    'getProgressStatus' : function (response) {
+        let {search, file} = NS_MODULES;
+        let progressStatus = {status: null, processedRecipients: 0, totalRecipients: 0, processedNumbers: 0, totalNumbers: 0};
+        let fileId = null;
+
+        search.create({
+            type: 'file',
+            filters: [['name', 'is', paramFileName], 'AND', ['folder', 'is', -15]],
+            columns: ['name', 'url']
+        }).run().each(resultSet => {fileId = resultSet.id;});
+
+        if (fileId) {
+            let fileRecord = file.load({id: fileId});
+
+            try {
+                let fileContent = JSON.parse(fileRecord.getContents());
+
+                progressStatus.status = fileContent.status;
+                progressStatus.processedRecipients = fileContent.totalRecipientCount - fileContent.recipients.length;
+                progressStatus.totalRecipients = fileContent.totalRecipientCount;
+                progressStatus.processedNumbers = fileContent.mobileNumberSent;
+                progressStatus.totalNumbers = fileContent.mobileNumbers.length;
+            } catch (e) {
+                //
+            }
+        }
+
+        _writeResponseJson(response, progressStatus);
     }
 }
 
@@ -266,6 +295,7 @@ const postOperations = {
     'sendMassSMS' : function (response, {recipients, message, customSenderNumber} = {}) {
         let {file, task} = NS_MODULES;
         let fileContent = {status: VARS.MR_STATUS.INDEXING, timestamp: Date.now(), recipients: [], mobileNumbers: [],
+            totalRecipientCount: 0, mobileNumberSent: 0,
             senderNumber: customSenderNumber || senderNumber, message};
 
         // We check if the process is already running
@@ -287,6 +317,7 @@ const postOperations = {
         }
 
         fileContent.recipients = recipients.map(recipient => ({type: recipient.type, data: recipient.data}));
+        fileContent.totalRecipientCount = recipients.length;
 
         // noinspection JSVoidFunctionReturnValueUsed
         let fileId = file.create({
@@ -297,10 +328,8 @@ const postOperations = {
         }).save();
 
         let params = {};
-        let execTimestampParamName = `custscript_${processorScriptId}_exec_timestamp`;
-        let paramFileIdParamName = `custscript_${processorScriptId}_param_file_id`;
-        params[execTimestampParamName] = fileContent.timestamp;
-        params[paramFileIdParamName] = fileId;
+        params[`custscript_${processorScriptId}_exec_timestamp`] = fileContent.timestamp;
+        params[`custscript_${processorScriptId}_param_file_id`] = fileId;
 
         let scriptTask = task.create({
             taskType: task.TaskType['MAP_REDUCE'],

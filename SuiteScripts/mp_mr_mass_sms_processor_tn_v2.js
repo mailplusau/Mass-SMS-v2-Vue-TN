@@ -41,12 +41,26 @@ define(moduleNames.map(item => 'N/' + item), (...args) => {
     // }
 
     function reduce(context) {
-        let fileContent = _getFileContent();
+        let {runtime, file} = NS_MODULES;
+        let fileId = runtime.getCurrentScript().getParameter(paramNames.paramFileId);
+        let fileRecord = file.load({id: fileId});
+        let fileContent = JSON.parse(fileRecord.getContents());
 
         if (!fileContent) return;
 
         if (fileContent?.status === VARS.MR_STATUS.INDEXING) _indexPhoneNumbers(context);
-        else if (fileContent?.status === VARS.MR_STATUS.SENDING) _sendMessage(context, fileContent);
+        else if (fileContent?.status === VARS.MR_STATUS.SENDING) {
+            _sendMessage(context, fileContent);
+
+            fileContent.mobileNumberSent++;
+
+            file.create({
+                name: fileRecord.name,
+                fileType: fileRecord.fileType,
+                contents: JSON.stringify(fileContent),
+                folder: fileRecord.folder,
+            }).save();
+        }
     }
 
     function summarize(context) {

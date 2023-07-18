@@ -22,7 +22,11 @@
                     outlined counter :rules="rules"
                     label="Message To Send"
                     placeholder="Put the content of your SMS message here."
-                ></v-textarea>
+                >
+                    <template v-slot:counter="{props}">
+                        {{props.value}} / 1600
+                    </template>
+                </v-textarea>
             </v-col>
 
             <v-col cols="12">
